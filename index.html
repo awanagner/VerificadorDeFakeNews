@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificador de Fatos em Tempo Real</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1.5rem;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            padding: 2.5rem;
+            max-width: 600px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .confidence-meter {
+            width: 100%;
+            height: 24px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            position: relative;
+        }
+        .confidence-bar {
+            height: 100%;
+            transition: width 0.5s ease-in-out;
+            background-color: #22c55e;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 0.5rem;
+        }
+        .confidence-label {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 700;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1 class="text-3xl font-bold text-center text-gray-800">Verificador de Fatos em Tempo Real</h1>
+    <p class="text-center text-gray-500">
+        Digite uma afirmação ou pergunta para verificar sua veracidade com base na internet.
+    </p>
+
+    <div class="flex flex-col md:flex-row items-stretch gap-4">
+        <input type="text" id="queryInput" placeholder="Ex: 'O céu é azul?'"
+               class="flex-1 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <button id="verifyButton"
+                class="bg-blue-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-blue-700 transition duration-300 ease-in-out">
+            Verificar
+        </button>
+    </div>
+
+    <div id="loadingMessage" class="loading-container hidden">
+        <div class="loading-spinner"></div>
+        <span class="text-gray-600">Verificando...</span>
+    </div>
+
+    <div id="responseContainer" class="hidden">
+        <div class="flex flex-col gap-4">
+            <h2 class="text-xl font-bold text-gray-800">Resultado</h2>
+            <div id="resultBox" class="bg-gray-100 p-4 rounded-lg border border-gray-200">
+                <p id="verdictText" class="text-gray-700 font-semibold"></p>
+                <p id="responseText" class="text-gray-700 mt-2"></p>
+            </div>
+            
+            <div id="confidenceMeterContainer" class="mt-4">
+                <p class="text-sm font-semibold text-gray-600 mb-1">Confiança</p>
+                <div class="confidence-meter">
+                    <div id="confidenceBar" class="confidence-bar" style="width: 0%;"></div>
+                    <span id="confidenceLabel" class="confidence-label">0/10</span>
+                </div>
+            </div>
+
+            <div id="sourcesContainer" class="mt-4">
+                <h3 class="text-sm font-semibold text-gray-600 mb-1">Fontes</h3>
+                <ul id="sourcesList" class="list-disc list-inside text-gray-600"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const queryInput = document.getElementById('queryInput');
+    const verifyButton = document.getElementById('verifyButton');
+    const loadingMessage = document.getElementById('loadingMessage');
+    const responseContainer = document.getElementById('responseContainer');
+    const verdictText = document.getElementById('verdictText');
+    const responseText = document.getElementById('responseText');
+    const confidenceBar = document.getElementById('confidenceBar');
+    const confidenceLabel = document.getElementById('confidenceLabel');
+    const sourcesList = document.getElementById('sourcesList');
+
+    verifyButton.addEventListener('click', async () => {
+        const query = queryInput.value.trim();
+        if (!query) {
+            alert('Por favor, digite uma afirmação para verificar.');
+            return;
+        }
+
+        // Resetar a interface
+        responseContainer.classList.add('hidden');
+        loadingMessage.classList.remove('hidden');
+        sourcesList.innerHTML = '';
+
+        try {
+            const response = await fetch('/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query }),
+            });
+
+            const result = await response.json();
+            
+            // Tratamento de erros: verifica se a resposta é um objeto de erro
+            if (result.error) {
+                verdictText.textContent = 'Erro';
+                responseText.textContent = result.error;
+                confidenceBar.style.width = '0%';
+                confidenceLabel.textContent = '0/10';
+                responseContainer.classList.remove('hidden');
+                loadingMessage.classList.add('hidden');
+                return;
+            }
+
+            const apiResponse = result.response;
+            const sources = result.sources;
+            
+            // Verifica o tipo da resposta para tratar erros da API
+            if (typeof apiResponse === 'string') {
+                verdictText.textContent = "Erro da API";
+                responseText.textContent = apiResponse;
+                confidenceBar.style.width = '0%';
+                confidenceLabel.textContent = '0/10';
+            } else {
+                // Mapeia a confiança da API para um valor numérico
+                let confidenceScore;
+                switch (apiResponse.confianca) {
+                    case 'Alta':
+                        confidenceScore = 10;
+                        verdictText.textContent = "Fato Comprovado";
+                        break;
+                    case 'Média':
+                        confidenceScore = 5;
+                        verdictText.textContent = "Informação Controvertida";
+                        break;
+                    case 'Baixa':
+                        confidenceScore = 2;
+                        verdictText.textContent = "Teoria sem Base Factual";
+                        break;
+                    default:
+                        confidenceScore = 0;
+                        verdictText.textContent = "Inconclusivo";
+                        break;
+                }
+                
+                // Atualiza a barra de confiança
+                confidenceBar.style.width = `${confidenceScore * 10}%`;
+                confidenceLabel.textContent = `${confidenceScore}/10`;
+                
+                // Exibe o veredicto
+                responseText.textContent = apiResponse.veredicto;
+            }
+            
+            // Exibir fontes
+            sources.forEach(source => {
+                const li = document.createElement('li');
+                const a = document.createElement('a');
+                a.href = source.uri;
+                a.textContent = source.title;
+                a.target = "_blank";
+                a.className = "text-blue-600 hover:underline";
+                li.appendChild(a);
+                sourcesList.appendChild(li);
+            });
+
+        } catch (error) {
+            verdictText.textContent = "Erro";
+            responseText.textContent = `Erro ao conectar ao servidor. Por favor, verifique se sua API está rodando. Detalhes: ${error.message}`;
+        } finally {
+            loadingMessage.classList.add('hidden');
+            responseContainer.classList.remove('hidden');
+        }
+    });
+});
+</script>
+
+</body>
+</html>
