@@ -7,10 +7,7 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# 1. COLE SUA CHAVE DE API AQUI.
-# Vá para https://aistudio.google.com/app/apikey para obter uma chave.
-# Substitua "SUA_CHAVE_AQUI" pela sua chave.
-API_KEY = "AIzaSyCksjceyU1koKYINAqnMenU881dJFrgxAU"
+API_KEY = "CHAVE_API_AQUI"
 
 # Use a URL e a chave de API fornecidas pelo ambiente.
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent"
@@ -112,4 +109,5 @@ def handle_verification():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+
 
