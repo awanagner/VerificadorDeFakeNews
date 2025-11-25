@@ -3,10 +3,10 @@ from flask_cors import CORS
 import requests
 import json
 import os
-
+|#
 app = Flask(__name__)
 CORS(app)
-##
+
 API_KEY = "CHAVE_API_AQUI"
 
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent"
@@ -108,6 +108,7 @@ def handle_verification():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+
 
 
 
