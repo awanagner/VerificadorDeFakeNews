@@ -3,7 +3,7 @@ from flask_cors import CORS
 import requests
 import json
 import os
-|#
+
 app = Flask(__name__)
 CORS(app)
 
@@ -108,6 +108,7 @@ def handle_verification():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+
 
 
 
