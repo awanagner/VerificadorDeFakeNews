@@ -8,8 +8,7 @@ app = Flask(__name__)
 CORS(app)
 
 API_KEY = "CHAVE_API_AQUI"
-#############
-# Use a URL e a chave de API fornecidas pelo ambiente.
+
 API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent"
 
 def verify_fact(query):
@@ -109,6 +108,7 @@ def handle_verification():
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
+
 
 
 
